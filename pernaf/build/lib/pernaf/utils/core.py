@@ -18,11 +18,11 @@ def fc(layer, num_outputs, scope='fc'):
         return fully_connected(
             layer,
             num_outputs=int(num_outputs),
-            activation_fn=tf.nn.tanh,
+            activation_fn=tf.tanh,
             weights_initializer=tf.random_uniform_initializer(-0.05, 0.05),
             weights_regularizer=None,
             biases_initializer=tf.constant_initializer(0.0),
-            scope=scope,
+            # scope=scope,
             ** batch_norm_args
         )
 
@@ -40,7 +40,7 @@ Normalize Advantage Function
 
 def mlp_normalized_advantage_function(x, act_dim, hidden_sizes=(100,100), activation=tf.tanh,
                                       output_activation=tf.tanh, action_space=None, weight_init=None,
-                                      act_multiplier=1, scope=None, **kwargs):
+                                      act_multiplier=1, scope=None):
     with tf.variable_scope(scope):
         # act_dim = a.shape.as_list()[-1]
         act_dim = act_dim[0]

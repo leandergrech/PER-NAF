@@ -1,7 +1,6 @@
 import os
 import pickle
 import random
-import sys
 
 import time
 
@@ -10,27 +9,27 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 
-from pernaf.pernaf.naf import NAF
+from naf2 import NAF
 from pernaf.pernaf.utils.statistic import Statistic
 from simple_environment import simpleEnv
 # from pendulum import PendulumEnv as simpleEnv
 # set random seed
 random_seed = 111
 # set random seed
-tf.set_random_seed(random_seed)
+
 np.random.seed(random_seed)
 random.seed(random_seed)
 
 
-dof = 5
+dof = 2
 env = simpleEnv(dof=dof)
 # env = simpleEnv()
 # env = gym.make("Pendulum-v0").env
 # env.__name__ = 'Pendulum'
 env.seed(random_seed)
 
-# for _ in range(10):
-#     env.reset()
+for _ in range(10):
+    env.reset()
 
 label = 'New NAF_debug on: '+'DOF: '+str(dof) + ' '+ env.__name__
 
@@ -113,56 +112,36 @@ def plot_convergence(agent, label):
 
 
 if __name__ == '__main__':
-    prio_info = dict(alpha=.5, beta_start=.9, beta_decay=lambda nr: max(1e-16, 0.25*(1 - nr / 100)))
-    prio_info = dict()
-    noise_info = dict(noise_function=lambda nr: max(0, 2*(1 - nr / 500)))
-    batch_info = lambda nr: (min(int(3 + (nr) ), 50))
-    decay_info = lambda nr: max(1e-3, (1 - nr / 50))
-    batch_info = lambda nr: 25
-    try:
-        random_seed = int(sys.argv[2])
-    except:
-        random_seed = 999
-    # set random seed
-    tf.set_random_seed(random_seed)
-    np.random.seed(random_seed)
-    try:
-        file_name = sys.argv[1] +'_' + str(random_seed)
-    except:
-        file_name = 'test_relative_16062020_' + str(random_seed) + '_'
-    directory = "PAPER/tests/" + file_name +'/'
+
     discount = 0.999
-    batch_size = 10
+    batch_size = 5
     learning_rate = 1e-3
-    max_steps = 10000
-    update_repeat = 3
-    max_episodes = 1000
-    tau = 1 - 0.999
-
+    max_steps = 50
+    update_repeat = 5
+    max_episodes = 20
+    polyak = 0.999
     is_train = True
+    is_continued = False
 
-    is_continued = not (is_train)
+    nafnet_kwargs = dict(hidden_sizes=[100, 100], activation=tf.nn.tanh
+                         , weight_init=tf.random_uniform_initializer(-0.05, 0.05, seed=random_seed))
 
-    nafnet_kwargs = dict(hidden_sizes=[50, 50], activation=tf.nn.tanh
-                         , weight_init=tf.random_uniform_initializer(-0.05, 0.05), batch_info=batch_info, decay_info=decay_info)
-    # filename = 'Scan_data.obj'
+    noise_info = dict(noise_function = lambda nr: max(0, (1-nr/10)))
+
+    prio_info = dict(alpha=.5, beta=.9)
+    prio_info = dict()
 
     # filename = 'Scan_data.obj'
     # filehandler = open(filename, 'rb')
     # scan_data = pickle.load(filehandler)
 
-
-    with tf.Session() as sess:
-        # statistics and running the agent
-        stat = Statistic(sess=sess, env_name=env.__name__, model_dir=directory,
-                         max_update_per_step=update_repeat, is_continued=is_continued, save_frequency=5000)
-        # init the agent
-        agent = NAF(sess=sess, env=env, stat=stat, discount= discount, batch_size=batch_size,
-                    learning_rate=learning_rate, max_steps=max_steps, update_repeat=update_repeat,
-                    max_episodes=max_episodes, tau=tau, pretune = None, prio_info=prio_info,
-                    noise_info=noise_info, **nafnet_kwargs)
-        # run the agent
-        agent.run(is_train)
+    # init the agent
+    agent = NAF(env=env, discount= discount, batch_size=batch_size,
+                learning_rate=learning_rate, max_steps=max_steps, update_repeat=update_repeat,
+                max_episodes=max_episodes, polyak=polyak, pretune = None, prio_info=prio_info,
+                noise_info=noise_info, **nafnet_kwargs)
+    # run the agent
+    agent.run(is_train)
 
     # plot the results
     plot_convergence(agent=agent, label=label)
